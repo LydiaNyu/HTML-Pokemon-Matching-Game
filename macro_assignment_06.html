@@ -1,0 +1,782 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Memory</title>
+    <style>
+      body {
+        background-color: black;
+        color: white;
+        font-family: monospace;
+        text-align: center;
+      }
+      .hidden {
+        display: none;
+      }
+
+      #tokens {
+        width: 400px;
+        height: 300px;
+        margin: auto;
+      }
+
+      #tokens img {
+        width: 100px;
+        height: 100px;
+      }
+
+
+    </style>
+  </head>
+  <body>
+
+    <h1>Memory Matching Madness!</h1>
+
+    <!-- start screen -->
+    <div id="screen_start">
+      <p>Instructions go here</p>
+      <button id="start">Start</button>
+    </div>
+
+
+    <!-- game play screen -->
+    <div id="screen_game" class="hidden">
+      <div id="timer"  data-time ="0" >0 seconds</div>
+      <div id="tokens">
+
+
+      </div>
+    </div>
+
+
+    <!-- game over screen -->
+    <div id="screen_gameover" class="hidden">
+      <div id="gameoverText">Your time was X ... that didn't beat the best time</div>
+      <div id ="overPlayer">Please enter your name: <input type="text"><button id = "bestPlayerText">submit</button> </div>
+      <button id="again">Play again</button>
+      <div id = "easytable"  class="hidden" > Easy Table:<ul><li> BestPlayer1: nobody; BestTime: 0;</li>
+      <li>BestPlayer2: nobody; BestTime: 0; </li> <li> BestPlayer2: nobody; BestTime: 0;</li></ul></div>
+      <div id = "mediumtable"  class="hidden" >Medium Table:<ul><li> BestPlayer1: nobody; BestTime: 0;</li>
+      <li>BestPlayer2: nobody; BestTime: 0; </li> <li> BestPlayer2: nobody; BestTime: 0;</li></ul> </div>
+      <div id = "hardtable"  class="hidden" > Hard Table: <ul><li> BestPlayer1: nobody; BestTime: 0;</li>
+      <li>BestPlayer2: nobody; BestTime: 0; </li> <li> BestPlayer2: nobody; BestTime: 0;</li></ul></div>
+    </div>
+    
+    
+    <div id = "diff">
+    Choose Your Difficulty for this game:
+    <select id="filter">
+        <option value="easy">Easy: 4 X 3</option>
+        <option value="medium">Medium: 5 X 4</option>
+        <option value="hard">Hard: 6 X 5</option>
+      </select>
+    </div>
+    
+    <audio id= "correctSound">
+    	<source src = "assignment06_images/correct.wav" type ="audio/wav">
+    </audio>
+    <audio id= "wrongSound">
+    	<source src = "assignment06_images/wrong.wav" type ="audio/wav">
+    </audio>
+    <script>
+      // isolate our DOM queries
+      let screen_start = document.querySelector('#screen_start');
+      let screen_game = document.querySelector('#screen_game');
+      let screen_gameover = document.querySelector('#screen_gameover');
+      let start = document.querySelector('#start');
+      let tokens = document.querySelector('#tokens');
+      let again = document.querySelector('#again');
+      let timer = document.querySelector('#timer');
+      let overText = document.querySelector('#gameoverText');
+      let difficulty = document.querySelector('#diff');
+      let filter = document.querySelector('#filter');
+      let easytable = document.querySelector('#easytable');
+      let mediumtable = document.querySelector('#mediumtable');
+      let hardtable = document.querySelector('#hardtable');
+      let correctSound = document.querySelector('#correctSound');
+      let wrongSound = document.querySelector('#wrongSound');
+      var timecheck = 0;
+      window.localStorage.setItem('bestTime',1000000);
+      window.localStorage.setItem('bestTime2',1000000);
+      window.localStorage.setItem('bestTime3',1000000);
+      window.localStorage.setItem('bestPlayer1',"nobody");
+      window.localStorage.setItem('bestPlayer2',"nobody");
+      window.localStorage.setItem('bestPlayer3',"nobody");
+      window.localStorage.setItem('bestTimeM',1000000);
+      window.localStorage.setItem('bestTime2M',1000000);
+      window.localStorage.setItem('bestTime3M',1000000);
+      window.localStorage.setItem('bestPlayer1M',"nobody");
+      window.localStorage.setItem('bestPlayer2M',"nobody");
+      window.localStorage.setItem('bestPlayer3M',"nobody");
+      window.localStorage.setItem('bestTimeH',1000000);
+      window.localStorage.setItem('bestTime2H',1000000);
+      window.localStorage.setItem('bestTime3H',1000000);
+      window.localStorage.setItem('bestPlayer1H',"nobody");
+      window.localStorage.setItem('bestPlayer2H',"nobody");
+      window.localStorage.setItem('bestPlayer3H',"nobody");
+      let firstImage;
+      
+
+      // array of all pokemon graphics
+      var assets = ['snorlax.png', 'electrabuzz.png', 'chansey.png', 'oddish.png',
+              'pikachu.png', 'paras.png', 'arcanine.png', 'ponita.png',
+              'venonat.png', 'eggsecute.png', 'machop.png', 'pidgey.png',
+              'psyduck.png', 'tauros.png', 'vulpix.png', 'gloom.png',
+              'krabby.png', 'butterfree.png', 'bulbasaur.png', 'clefairy.png',
+              'koffing.png', 'goldeen.png', 'magikarp.png', 'beedrill.png',
+              'lapras.png', 'meowth.png', 'ekans.png', 'jigglypuff.png',
+              'horsea.png', 'polywog.png', 'sandshrew.png', 'rattata.png',
+              'gengar.png', 'eevee.png', 'bellsprout.png', 'squirtle.png',
+              'seel.png', 'caterpie.png']
+
+      // vars to keep track of which elements were clicked
+      let token1 = false;
+      let token2 = false;
+      let countMatch = 0;
+
+      // when the user click start we need to show the game playing screen
+      start.addEventListener('click', function() {
+
+        // make the start screen invisible
+        screen_start.classList.add('hidden');
+
+        // show the playing screen
+        screen_game.classList.remove("hidden");
+        
+        difficulty.classList.add('hidden');
+       
+        
+        newballs();
+
+      });
+
+      function newballs(){
+      timer.dataset.time = "0";
+       let aTime = setInterval(function(event){ 
+        console.log(timer.dataset.time);
+        timer.dataset.time = parseInt(timer.dataset.time)+1;
+        
+        timer.innerHTML = timer.dataset.time + " seconds";
+         }, 1000);
+         
+       if(filter.value == "easy"){
+       console.log("easy");
+      
+         
+        // create 12 pokeballs for the user to click on
+
+        // pick 6 random pokemon
+        let pickedPokemon = [];
+
+        for (let i = 0; i < 6; i++) {
+          let randomP = parseInt( Math.random() * assets.length );
+          pickedPokemon.push( assets[randomP] );
+          pickedPokemon.push( assets[randomP] );
+          assets.splice( randomP, 1 );
+        }
+
+        // randomize the pokemon in our array
+        while (pickedPokemon.length > 0) {
+          let tempImage = document.createElement('img');
+          tempImage.src = 'assignment06_images/pokeball.png';
+
+          let secretIndex = parseInt( Math.random() * pickedPokemon.length );
+          tempImage.dataset.secret = pickedPokemon[ secretIndex ];
+          tempImage.dataset.clickTime = 0;
+          pickedPokemon.splice( secretIndex, 1 );
+
+          tokens.appendChild( tempImage );
+
+          tempImage.addEventListener('click', function(event) {
+
+            // if this is the first one clicked, show the image as-is
+            if (token1 == false && event.currentTarget.dataset.clickTime == 0) {
+              // this becomes token1!
+              token1 = event.currentTarget;
+              event.currentTarget.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+             
+            }
+
+            // if this is the SECOND one clicked, we need to evaluate
+            else if (token2 == false  && event.currentTarget.dataset.clickTime == 0 ) {
+              // must be on token2
+              token2 = event.currentTarget;
+              token2.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+
+              if (token1.dataset.secret == token2.dataset.secret) {
+                console.log("MATCH!");
+                console.log(token1);
+                console.log(token2);
+                token1 = false;
+                token2 = false;
+                countMatch++;
+                correctSound.play();
+              }
+              else {
+                wrongSound.play();
+                // in 1/2 second reset these tokens
+                setTimeout( function() {
+       			 // hide both tokens
+        		token1.src = 'assignment06_images/pokeball.png';
+        		token2.src = 'assignment06_images/pokeball.png';
+                
+                token1.dataset.clickTime = 0;
+        		token2.dataset.clickTime = 0;
+                
+        		// flip the tokens back to false to reset for the next match
+        		
+        		token1 = false;
+        		token2 = false;
+        		
+        		
+     			 }, 500 );
+              }
+              if(countMatch == 6){
+              
+              clearInterval(aTime);
+              screen_game.classList.add("hidden");
+              screen_gameover.classList.remove("hidden");
+              easytable.classList.remove("hidden");
+              mediumtable.classList.add("hidden");
+              hardtable.classList.add("hidden");
+              difficulty.classList.remove('hidden');
+              timer.innerHTML = "0 seconds";
+               let finishedTime = parseInt(timer.dataset.time);
+               console.log(finishedTime);
+			   let forCompareTime = parseInt(window.localStorage.getItem('bestTime'));
+			   let forCompareTime2 = parseInt(window.localStorage.getItem('bestTime2'));
+			   let forCompareTime3 = parseInt(window.localStorage.getItem('bestTime3'));
+			   let playerName = document.getElementById("bestPlayerText");
+			   
+				 if(finishedTime < forCompareTime){
+				 let time1 = window.localStorage.getItem('bestTime');
+				 let time2 = window.localStorage.getItem('bestTime2');
+				 let player1 = window.localStorage.getItem('bestPlayer1');
+				 let player2 = window.localStorage.getItem('bestPlayer2');
+				 window.localStorage.setItem('bestTime2',time1);
+				 window.localStorage.setItem('bestTime3',time2);
+				 window.localStorage.setItem('bestPlayer2',player1);
+				 window.localStorage.setItem('bestPlayer3',player2);
+				 
+				 window.localStorage.setItem('bestTime',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the best time";
+				 window.localStorage.setItem('bestPlayer1',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText);
+				 window.localStorage.setItem('bestPlayer1',nameText);
+				 arrangeTable();
+				 }
+				 
+				  
+				 } else if(finishedTime < forCompareTime2){
+				 
+				 let time2 = window.localStorage.getItem('bestTime2');
+				 let player2 = window.localStorage.getItem('bestPlayer2');
+				 window.localStorage.setItem('bestTime3',time2);
+				 window.localStorage.setItem('bestPlayer3',player2);
+				 window.localStorage.setItem('bestTime2',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the second best time";
+				 window.localStorage.setItem('bestPlayer2',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText2);
+				 window.localStorage.setItem('bestPlayer2',nameText2);
+				 arrangeTable();
+				 }
+				 
+				 } 
+				 else if(finishedTime < forCompareTime3){
+				  window.localStorage.setItem('bestTime3',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the third best time";
+				 window.localStorage.setItem('bestPlayer3',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText3 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText3);
+				 window.localStorage.setItem('bestPlayer3',nameText3);
+				 arrangeTable();
+				 
+				 }
+				 }
+				 else{
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which does not beat the first three best time:";
+		         playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText2);
+				 
+				 }
+				 }
+				 
+				
+				
+				 
+          
+              }
+
+            }
+
+
+
+          });
+        }
+
+      
+      
+      }
+      
+       
+       
+       
+       
+    
+    
+    
+    
+       else if(filter.value == "medium"){
+       console.log("medium");
+       tokens.style.width = "500px";
+       tokens.style.height = "400px";
+       
+         
+         
+        // create 12 pokeballs for the user to click on
+
+        // pick 6 random pokemon
+        let pickedPokemon = [];
+
+        for (let i = 0; i < 10; i++) {
+          let randomP = parseInt( Math.random() * assets.length );
+          pickedPokemon.push( assets[randomP] );
+          pickedPokemon.push( assets[randomP] );
+          assets.splice( randomP, 1 );
+        }
+
+        // randomize the pokemon in our array
+        while (pickedPokemon.length > 0) {
+          let tempImage = document.createElement('img');
+          tempImage.src = 'assignment06_images/pokeball.png';
+
+          let secretIndex = parseInt( Math.random() * pickedPokemon.length );
+          tempImage.dataset.secret = pickedPokemon[ secretIndex ];
+          tempImage.dataset.clickTime = 0;
+          pickedPokemon.splice( secretIndex, 1 );
+
+          tokens.appendChild( tempImage );
+
+          tempImage.addEventListener('click', function(event) {
+
+            // if this is the first one clicked, show the image as-is
+            if (token1 == false && event.currentTarget.dataset.clickTime == 0) {
+              // this becomes token1!
+              token1 = event.currentTarget;
+              event.currentTarget.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+             
+            }
+
+            // if this is the SECOND one clicked, we need to evaluate
+            else if (token2 == false  && event.currentTarget.dataset.clickTime == 0 ) {
+              // must be on token2
+              token2 = event.currentTarget;
+              token2.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+
+              if (token1.dataset.secret == token2.dataset.secret) {
+                console.log("MATCH!");
+                console.log(token1);
+                console.log(token2);
+                token1 = false;
+                token2 = false;
+                countMatch++;
+                correctSound.play();
+              }
+              else {
+				wrongSound.play();
+                // in 1/2 second reset these tokens
+                setTimeout( function() {
+       			 // hide both tokens
+        		token1.src = 'assignment06_images/pokeball.png';
+        		token2.src = 'assignment06_images/pokeball.png';
+                
+                token1.dataset.clickTime = 0;
+        		token2.dataset.clickTime = 0;
+                
+        		// flip the tokens back to false to reset for the next match
+        		
+        		token1 = false;
+        		token2 = false;
+        		
+        		
+     			 }, 500 );
+              }
+              if(countMatch == 10){
+              
+              clearInterval(aTime);
+              screen_game.classList.add("hidden");
+              screen_gameover.classList.remove("hidden");
+              easytable.classList.add("hidden");
+              mediumtable.classList.remove("hidden");
+              hardtable.classList.add("hidden");
+              difficulty.classList.remove('hidden');
+              timer.innerHTML = "0 seconds";
+               let finishedTime = parseInt(timer.dataset.time);
+               console.log(finishedTime);
+			   let forCompareTime = parseInt(window.localStorage.getItem('bestTimeM'));
+			   let forCompareTime2 = parseInt(window.localStorage.getItem('bestTime2M'));
+			   let forCompareTime3 = parseInt(window.localStorage.getItem('bestTime3M'));
+			   let playerName = document.getElementById("bestPlayerText");
+			   
+				 if(finishedTime < forCompareTime){
+				 let time1 = window.localStorage.getItem('bestTimeM');
+				 let time2 = window.localStorage.getItem('bestTime2M');
+				 let player1 = window.localStorage.getItem('bestPlayer1M');
+				 let player2 = window.localStorage.getItem('bestPlayer2M');
+				 window.localStorage.setItem('bestTime2M',time1);
+				 window.localStorage.setItem('bestTime3M',time2);
+				 window.localStorage.setItem('bestPlayer2M',player1);
+				 window.localStorage.setItem('bestPlayer3M',player2);
+				 
+				 window.localStorage.setItem('bestTimeM',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the best time";
+				 window.localStorage.setItem('bestPlayer1M',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText);
+				 window.localStorage.setItem('bestPlayer1M',nameText);
+				 arrangeTable();
+				 }
+				 
+				  
+				 } else if(finishedTime < forCompareTime2){
+				  let time2 = window.localStorage.getItem('bestTime2M');
+				 let player2 = window.localStorage.getItem('bestPlayer2M');
+				 window.localStorage.setItem('bestTime3M',time2);
+				 window.localStorage.setItem('bestPlayer3M',player2);
+				 window.localStorage.setItem('bestTime2M',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the second best time";
+				 window.localStorage.setItem('bestPlayer2M',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText2);
+				 window.localStorage.setItem('bestPlayer2M',nameText2);
+				  arrangeTable();
+				 }
+				 
+				 } 
+				 else if(finishedTime < forCompareTime3){
+				  window.localStorage.setItem('bestTime3M',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the third best time";
+				 window.localStorage.setItem('bestPlayer3M',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText3 = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText3);
+				 window.localStorage.setItem('bestPlayer3M',nameText3);
+                 arrangeTable();
+				 
+				 }
+				 }
+				 else{
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which does not beat the first three best time:";
+		         playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText2);
+				 
+				 }
+				 }
+				 
+				
+				
+				 
+
+              }
+
+            }
+
+
+
+          });
+        }
+
+      
+      
+      
+      
+      }
+      
+       
+       else if(filter.value == "hard"){
+       console.log("hard");
+       tokens.style.width = "600px";
+       tokens.style.height = "500px";
+       ;
+         
+         
+        // create 12 pokeballs for the user to click on
+
+        // pick 6 random pokemon
+        let pickedPokemon = [];
+
+        for (let i = 0; i < 15; i++) {
+          let randomP = parseInt( Math.random() * assets.length );
+          pickedPokemon.push( assets[randomP] );
+          pickedPokemon.push( assets[randomP] );
+          assets.splice( randomP, 1 );
+        }
+
+        // randomize the pokemon in our array
+        while (pickedPokemon.length > 0) {
+          let tempImage = document.createElement('img');
+          tempImage.src = 'assignment06_images/pokeball.png';
+
+          let secretIndex = parseInt( Math.random() * pickedPokemon.length );
+          tempImage.dataset.secret = pickedPokemon[ secretIndex ];
+          tempImage.dataset.clickTime = 0;
+          pickedPokemon.splice( secretIndex, 1 );
+
+          tokens.appendChild( tempImage );
+
+          tempImage.addEventListener('click', function(event) {
+
+            // if this is the first one clicked, show the image as-is
+            if (token1 == false && event.currentTarget.dataset.clickTime == 0) {
+              // this becomes token1!
+              token1 = event.currentTarget;
+              event.currentTarget.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+             
+            }
+
+            // if this is the SECOND one clicked, we need to evaluate
+            else if (token2 == false  && event.currentTarget.dataset.clickTime == 0 ) {
+              // must be on token2
+              token2 = event.currentTarget;
+              token2.dataset.clickTime = 1;
+              // reveal our secret image
+              event.currentTarget.src = 'assignment06_images/' + event.currentTarget.dataset.secret;
+
+              if (token1.dataset.secret == token2.dataset.secret) {
+                console.log("MATCH!");
+                console.log(token1);
+                console.log(token2);
+                token1 = false;
+                token2 = false;
+                countMatch++;
+                correctSound.play();
+              }
+              else {
+                wrongSound.play();
+                // in 1/2 second reset these tokens
+                setTimeout( function() {
+       			 // hide both tokens
+        		token1.src = 'assignment06_images/pokeball.png';
+        		token2.src = 'assignment06_images/pokeball.png';
+                
+                token1.dataset.clickTime = 0;
+        		token2.dataset.clickTime = 0;
+                
+        		// flip the tokens back to false to reset for the next match
+        		
+        		token1 = false;
+        		token2 = false;
+        		
+        		
+     			 }, 500 );
+              }
+              if(countMatch == 15){
+              
+              clearInterval(aTime);
+              screen_game.classList.add("hidden");
+              screen_gameover.classList.remove("hidden");
+              easytable.classList.add("hidden");
+              mediumtable.classList.add("hidden");
+              hardtable.classList.remove("hidden");
+              difficulty.classList.remove('hidden');
+              timer.innerHTML = "0 seconds";
+               let finishedTime = parseInt(timer.dataset.time);
+               console.log(finishedTime);
+			   let forCompareTime = parseInt(window.localStorage.getItem('bestTimeH'));
+			   let forCompareTime2 = parseInt(window.localStorage.getItem('bestTime2H'));
+			   let forCompareTime3 = parseInt(window.localStorage.getItem('bestTime3H'));
+			   let playerName = document.getElementById("bestPlayerText");
+			   
+				 if(finishedTime < forCompareTime){
+				  let time1 = window.localStorage.getItem('bestTimeH');
+				 let time2 = window.localStorage.getItem('bestTime2H');
+				 let player1 = window.localStorage.getItem('bestPlayer1H');
+				 let player2 = window.localStorage.getItem('bestPlayer2H');
+				 window.localStorage.setItem('bestTime2H',time1);
+				 window.localStorage.setItem('bestTime3H',time2);
+				 window.localStorage.setItem('bestPlayer2H',player1);
+				 window.localStorage.setItem('bestPlayer3H',player2);
+				 window.localStorage.setItem('bestTimeH',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the best time";
+				 window.localStorage.setItem('bestPlayer1H',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText = event.currentTarget.previousElementSibling.value;
+				 console.log(nameText);
+				 window.localStorage.setItem('bestPlayer1H',nameText);
+				 arrangeTable();
+				  
+				 } 
+				 }
+				 else if(finishedTime < forCompareTime2){
+				  let time2 = window.localStorage.getItem('bestTime2H');
+				 let player2 = window.localStorage.getItem('bestPlayer2H');
+				 window.localStorage.setItem('bestTime3H',time2);
+				 window.localStorage.setItem('bestPlayer3H',player2);
+				 window.localStorage.setItem('bestTime2H',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the second best time";
+				 window.localStorage.setItem('bestPlayer2H',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText2);
+				 window.localStorage.setItem('bestPlayer2H',nameText2);
+				  arrangeTable();
+				 }
+				 
+				 } 
+				 else if(finishedTime < forCompareTime3){
+				 window.localStorage.setItem('bestTime3H',finishedTime);
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which is the third best time";
+				 window.localStorage.setItem('bestPlayer3H',"nobody");
+				 arrangeTable();
+				 playerName.onclick = function(event){
+				 let nameText3 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText3);
+				 window.localStorage.setItem('bestPlayer3H',nameText3);
+                 arrangeTable();
+				 
+				 }
+				 }
+				 else{
+				 overText.innerHTML = " Your time was " + finishedTime +" seconds, which does not beat the first three best time:";
+		         playerName.onclick = function(event){
+				 let nameText2 = event.currentTarget.previousElementSibling.value;
+				  console.log(nameText2);
+				 
+				 }
+				 }
+				 
+				 
+				 
+				 
+				 
+				
+				
+				 
+
+              }
+
+            }
+
+
+
+          });
+        }
+
+      
+      
+      
+      
+      }
+       
+       
+       
+       
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+      }
+      
+      
+     again.addEventListener('click',function(event){
+				 
+				
+				 screen_gameover.classList.add('hidden');
+				 screen_game.classList.remove("hidden");
+				 difficulty.classList.add("hidden");
+				 let j ;
+				 let length = tokens.children.length;
+				 for(j=0;j<length;j++){
+				  tokens.children[0].remove();
+				  console.log("removed");
+				 }
+				 countMatch = 0; 
+				  newballs();
+              })
+      
+      function arrangeTable(){
+     let timeE1 =  window.localStorage.getItem('bestTime');
+     let timeE2 =  window.localStorage.getItem('bestTime2');
+     let timeE3 =  window.localStorage.getItem('bestTime3');
+     let playerE1 =  window.localStorage.getItem('bestPlayer1');
+     let playerE2 =  window.localStorage.getItem('bestPlayer2');
+     let playerE3 =  window.localStorage.getItem('bestPlayer3');
+      
+     let timeM1 =  window.localStorage.getItem('bestTimeM');
+     let timeM2 =  window.localStorage.getItem('bestTime2M');
+     let timeM3 =  window.localStorage.getItem('bestTime3M');
+     let playerM1 =  window.localStorage.getItem('bestPlayer1M');
+     let playerM2 =  window.localStorage.getItem('bestPlayer2M');
+     let playerM3 =  window.localStorage.getItem('bestPlayer3M');
+     
+     let timeH1 =  window.localStorage.getItem('bestTimeH');
+     let timeH2 =  window.localStorage.getItem('bestTime2H');
+     let timeH3 =  window.localStorage.getItem('bestTime3H');
+     let playerH1 =  window.localStorage.getItem('bestPlayer1H');
+     let playerH2 =  window.localStorage.getItem('bestPlayer2H');
+     let playerH3 =  window.localStorage.getItem('bestPlayer3H');
+     
+     document.querySelectorAll('li')[0].innerHTML = "BestPlayer1: " + playerE1+ "; BestTime:"+ timeE1 +" seconds";
+     document.querySelectorAll('li')[1].innerHTML = "BestPlayer2: " + playerE2+ "; BestTime:"+ timeE2 +" seconds";
+     document.querySelectorAll('li')[2].innerHTML = "BestPlayer3: " + playerE3+ "; BestTime:"+ timeE3 +" seconds";
+     document.querySelectorAll('li')[3].innerHTML = "BestPlayer1: " + playerM1+ "; BestTime:"+ timeM1 +" seconds";
+     document.querySelectorAll('li')[4].innerHTML = "BestPlayer2: " + playerM2+ "; BestTime:"+ timeM2 +" seconds";
+     document.querySelectorAll('li')[5].innerHTML = "BestPlayer3: " + playerM3+ "; BestTime:"+ timeM3 +" seconds";
+     document.querySelectorAll('li')[6].innerHTML = "BestPlayer1: " + playerH1+ "; BestTime:"+ timeH1 +" seconds";
+     document.querySelectorAll('li')[7].innerHTML = "BestPlayer2: " + playerH2+ "; BestTime:"+ timeH2 +" seconds";
+     document.querySelectorAll('li')[8].innerHTML = "BestPlayer3: " + playerH3+ "; BestTime:"+ timeH3 +" seconds";
+    
+     
+      
+      }
+
+
+    </script>
+
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
